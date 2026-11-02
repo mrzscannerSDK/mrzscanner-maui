@@ -1,0 +1,78 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    MRZScanner.Maui: the MRZ scanner for .NET MAUI (platforms/maui). One package, three targets,
+    each built where it can be (build.sh): Android on the server, iOS on the Mac, Windows on the
+    Windows PC; build.sh merges the three packages into one. MrzTargets picks the targets of a
+    build (default: all). The native parts come from ../native/ (build.sh stages them).
+  -->
+  <PropertyGroup>
+    <MrzTargets Condition="'$(MrzTargets)' == ''">android;ios;windows</MrzTargets>
+    <TargetFrameworks Condition="$(MrzTargets.Contains('android'))">$(TargetFrameworks);net10.0-android</TargetFrameworks>
+    <TargetFrameworks Condition="$(MrzTargets.Contains('ios'))">$(TargetFrameworks);net10.0-ios</TargetFrameworks>
+    <TargetFrameworks Condition="$(MrzTargets.Contains('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsTrimmable>true</IsTrimmable>
+    <RootNamespace>MRZScanner.Maui</RootNamespace>
+    <SupportedOSPlatformVersion Condition="$(TargetFramework.Contains('-android'))">24.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$(TargetFramework.Contains('-ios'))">15.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$(TargetFramework.Contains('-windows'))">10.0.17763.0</SupportedOSPlatformVersion>
+    <TargetPlatformMinVersion Condition="$(TargetFramework.Contains('-windows'))">10.0.17763.0</TargetPlatformMinVersion>
+
+    <PackageId>MRZScanner.Maui</PackageId>
+    <Version>2.7.4</Version>
+    <Authors>Barkoder</Authors>
+    <Description>MRZ scanner for .NET MAUI: reads passports, ID cards and visas with the camera (AR mode, Android and iOS) or from photos (Android, iOS, Windows), offline.</Description>
+    <PackageTags>mrz;passport;id-card;ocr;scanner;maui</PackageTags>
+    <PackageProjectUrl>https://mrzscanner.com/</PackageProjectUrl>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <!-- Nothing of the build machines in the package: no PDB (its path was written into the
+         assemblies), and source paths mapped (/_/) wherever the compiler records one. -->
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <Deterministic>true</Deterministic>
+    <PathMap>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))=/_/</PathMap>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The lowest MAUI 10 (what new apps from the template use); apps may use any newer one. -->
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.0" />
+    <None Include="../README.md" Pack="true" PackagePath="/" />
+    <None Include="../LICENSE.txt" Pack="true" PackagePath="/" />
+  </ItemGroup>
+
+  <!-- Android: the SDK's AAR (not bound: called through JNI) and the libraries it uses, at the
+       versions that fit MAUI 10.0's own (newer ones bring androidx.fragment 1.9, which clashes with
+       the fragment-ktx 1.8 MAUI 10.0 uses); apps on newer MAUI raise them. Core and the Kotlin
+       standard library come with these, above what the SDK needs (core-ktx 1.13.1, Kotlin 2.0.21). -->
+  <ItemGroup Condition="$(TargetFramework.Contains('-android'))">
+    <AndroidLibrary Include="../native/android/mrzscanner-ar.aar" Bind="false" />
+    <PackageReference Include="Xamarin.AndroidX.Camera.Camera2" Version="1.4.2.3" />
+    <PackageReference Include="Xamarin.AndroidX.Camera.Lifecycle" Version="1.4.2.3" />
+    <PackageReference Include="Xamarin.AndroidX.Camera.View" Version="1.4.2.3" />
+    <PackageReference Include="Xamarin.AndroidX.Activity.Ktx" Version="1.10.1.3" />
+  </ItemGroup>
+
+  <!-- iOS: the SDK's Swift layer as a framework (MRZScanObjC) and the core. A regular library does
+       not carry native frameworks into its package, so they go in as files (native/ios) with
+       buildTransitive/MRZScanner.Maui.targets, which adds them to the app's build. -->
+  <!-- (Packed files are collected outside the per-target builds: conditioned on MrzTargets.) -->
+  <ItemGroup Condition="$(MrzTargets.Contains('ios'))">
+    <None Include="../native/ios/**" Pack="true" PackagePath="native/ios/" />
+    <None Include="MRZScanner.Maui.targets" Pack="true" PackagePath="buildTransitive/" />
+  </ItemGroup>
+
+  <!-- Windows: the core's DLL (packed for win-x64 apps) and the legacy reader's model (embedded). -->
+  <ItemGroup Condition="$(MrzTargets.Contains('windows'))">
+    <None Include="../native/windows/mrzscanner.dll" Pack="true" PackagePath="runtimes/win-x64/native/" />
+  </ItemGroup>
+  <ItemGroup Condition="$(TargetFramework.Contains('-windows'))">
+    <EmbeddedResource Include="../native/windows/mrz.traineddata" LogicalName="mrz.traineddata" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,15 @@
+<Project>
+  <!-- MRZScanner.Maui for the app's iOS build: the iOS SDK (MRZScanObjC) and the core, as native
+       frameworks shipped in this package (native/ios); a regular library cannot carry them itself. -->
+  <ItemGroup Condition="'$(TargetPlatformIdentifier)' == 'ios'">
+    <NativeReference Include="$(MSBuildThisFileDirectory)../native/ios/MRZScannerARFramework.xcframework">
+      <Kind>Framework</Kind>
+      <Frameworks>AVFoundation SwiftUI UIKit</Frameworks>
+      <SmartLink>false</SmartLink>
+    </NativeReference>
+    <NativeReference Include="$(MSBuildThisFileDirectory)../native/ios/MRZScannerCore.xcframework">
+      <Kind>Framework</Kind>
+      <SmartLink>false</SmartLink>
+    </NativeReference>
+  </ItemGroup>
+</Project>
